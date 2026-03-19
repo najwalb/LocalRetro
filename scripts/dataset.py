@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from pathlib import Path
 
 from rdkit import Chem
 
@@ -7,6 +8,8 @@ import torch
 import sklearn
 import dgl.backend as F
 from dgl.data.utils import save_graphs, load_graphs
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 def canonicalize_rxn(rxn):
     canonicalized_smiles = []
@@ -26,7 +29,9 @@ class USPTODataset(object):
         self.smiles = df['Products'].tolist()
         self.masks = df['Mask'].tolist()
         self.labels = [eval(t) for t in df['Labels']]
-        self.cache_file_path = '../data/saved_graphs/%s_dglgraph.bin' % args['dataset']
+        saved_graphs_dir = PROJECT_ROOT / 'data' / 'saved_graphs'
+        saved_graphs_dir.mkdir(parents=True, exist_ok=True)
+        self.cache_file_path = str(saved_graphs_dir / ('%s_dglgraph.bin' % args['dataset']))
         self._pre_process(smiles_to_graph, node_featurizer, edge_featurizer, load, log_every)
 
     def _pre_process(self, smiles_to_graph, node_featurizer, edge_featurizer, load, log_every):
@@ -52,11 +57,13 @@ class USPTODataset(object):
         
 class USPTOTestDataset(object):
     def __init__(self, args, smiles_to_graph, node_featurizer, edge_featurizer, load=True, log_every=1000):
-        df = pd.read_csv('../data/%s/raw_test.csv' % args['dataset'])
+        df = pd.read_csv(str(PROJECT_ROOT / 'data' / args['dataset'] / 'raw' / 'raw_test.csv'))
         self.rxns = df['reactants>reagents>production'].tolist()
         self.rxns = [canonicalize_rxn(rxn) for rxn in self.rxns]
         self.smiles = [rxn.split('>>')[-1] for rxn in self.rxns]
-        self.cache_file_path = '../data/saved_graphs/%s_test_dglgraph.bin' % args['dataset']
+        saved_graphs_dir = PROJECT_ROOT / 'data' / 'saved_graphs'
+        saved_graphs_dir.mkdir(parents=True, exist_ok=True)
+        self.cache_file_path = str(saved_graphs_dir / ('%s_test_dglgraph.bin' % args['dataset']))
         self._pre_process(smiles_to_graph, node_featurizer, edge_featurizer, load, log_every)
 
     def _pre_process(self, smiles_to_graph, node_featurizer, edge_featurizer, load, log_every):

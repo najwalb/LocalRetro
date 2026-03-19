@@ -5,7 +5,10 @@ from tqdm import tqdm
 from functools import partial
 from collections import defaultdict
 from argparse import ArgumentParser
-sys.path.append('../')
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
     
 import rdkit
 from rdkit import Chem, RDLogger 
@@ -45,13 +48,14 @@ def get_k_predictions(test_id, args):
     return (test_id, (all_prediction, class_prediction))
 
 def main(args):   
-    atom_templates = pd.read_csv('../data/%s/atom_templates.csv' % args['dataset'])
-    bond_templates = pd.read_csv('../data/%s/bond_templates.csv' % args['dataset'])
-    template_infos = pd.read_csv('../data/%s/template_infos.csv' % args['dataset'])
-    class_test = '../data/%s/class_test.csv' % args['dataset']
+    data_dir = PROJECT_ROOT / 'data' / args['dataset']
+    atom_templates = pd.read_csv(str(data_dir / 'atom_templates.csv'))
+    bond_templates = pd.read_csv(str(data_dir / 'bond_templates.csv'))
+    template_infos = pd.read_csv(str(data_dir / 'template_infos.csv'))
+    class_test = str(data_dir / 'class_test.csv')
     if os.path.exists(class_test):
         args['rxn_class_given'] = True
-        args['templates_class'] = pd.read_csv('../data/%s/template_rxnclass.csv' % args['dataset'])
+        args['templates_class'] = pd.read_csv(str(data_dir / 'template_rxnclass.csv'))
         args['test_rxn_class'] = pd.read_csv(class_test)['class']
     else:
         args['rxn_class_given'] = False 
@@ -65,7 +69,7 @@ def main(args):
     else:
         result_name = 'LocalRetro_%s.txt' % args['model']
     
-    prediction_file =  '../outputs/raw_prediction/' + result_name
+    prediction_file = str(PROJECT_ROOT / 'outputs' / 'raw_prediction' / result_name)
     raw_predictions = {}
     with open(prediction_file, 'r') as f:
         for line in f.readlines():
@@ -74,8 +78,8 @@ def main(args):
                 continue
             raw_predictions[int(seps[0])] = seps[1:]
         
-    output_path = '../outputs/decoded_prediction/' + result_name
-    output_path_class = '../outputs/decoded_prediction_class/' + result_name
+    output_path = str(PROJECT_ROOT / 'outputs' / 'decoded_prediction' / result_name)
+    output_path_class = str(PROJECT_ROOT / 'outputs' / 'decoded_prediction_class' / result_name)
     args['raw_predictions'] = raw_predictions
     # multi_processing
     result_dict = {}
@@ -100,7 +104,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--model', default='default', help='Model to use')
     parser.add_argument('-k', '--top-k', default= 50, help='Number of top predictions')
     args = parser.parse_args().__dict__
-    mkdir_p('../outputs/decoded_prediction')
-    mkdir_p('../outputs/decoded_prediction_class')
+    mkdir_p(str(PROJECT_ROOT / 'outputs' / 'decoded_prediction'))
+    mkdir_p(str(PROJECT_ROOT / 'outputs' / 'decoded_prediction_class'))
     main(args) 
     

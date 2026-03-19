@@ -1,13 +1,15 @@
 import os, sys, re, copy
 import pandas as pd
+from pathlib import Path
 
-import rdkit 
-from rdkit import Chem, RDLogger 
+import rdkit
+from rdkit import Chem, RDLogger
 from rdkit.Chem import rdChemReactions
 
-RDLogger.DisableLog('rdApp.*')  
+RDLogger.DisableLog('rdApp.*')
 
-sys.path.append('../')
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 from Extract_from_train_data import build_template_extractor, get_reaction_template, get_full_template
     
 def get_edit_site_retro(smiles): # the function in Run_preprocessing.py
@@ -43,7 +45,7 @@ def labeling_dataset(args, split, template_dicts, template_infos, extractor):
         print ('%s data already preprocessed...loaded data!' % split)
         return pd.read_csv('%s/preprocessed_%s.csv' % (args['output_dir'], split))
     
-    rxns = pd.read_csv('../data/%s/raw_%s.csv' % (args['dataset'], split))['reactants>reagents>production']
+    rxns = pd.read_csv(str(PROJECT_ROOT / 'data' / args['dataset'] / 'raw' / ('raw_%s.csv' % split)))['reactants>reagents>production']
     reactants = []
     products = []
     reagents = []
@@ -176,15 +178,13 @@ def make_simulate_output(args, split = 'test'):
     
 def combine_preprocessed_data(train_pre, val_pre, test_pre, args):
 
-    train_valid = train_pre
-    val_valid = val_pre
-    test_valid = test_pre
-    
-    train_valid['Split'] = ['train'] * len(train_valid)
-    val_valid['Split'] = ['val'] * len(val_valid)
-    test_valid['Split'] = ['test'] * len(test_valid)
-    all_valid = train_valid.append(val_valid, ignore_index=True)
-    all_valid = all_valid.append(test_valid, ignore_index=True)
+    train_pre['Split'] = ['train'] * len(train_pre)
+    val_pre['Split'] = ['val'] * len(val_pre)
+    parts = [train_pre, val_pre]
+    if test_pre is not None:
+        test_pre['Split'] = ['test'] * len(test_pre)
+        parts.append(test_pre)
+    all_valid = pd.concat(parts, ignore_index=True)
     all_valid['Mask'] = [int(f>=args['min_template_n']) for f in all_valid['Frequency']]
     print ('Valid data size: %s' % len(all_valid))
     all_valid.to_csv('%s/labeled_data.csv' % args['output_dir'], index = None)
@@ -220,15 +220,21 @@ if __name__ == '__main__':
     parser.add_argument('-stereo', '--use-stereo', default=True,  help='Use stereo info in template extraction')
     parser.add_argument('-min', '--min-template-n', type=int, default=1,  help='Minimum of template frequency')
     args = parser.parse_args().__dict__
-    args['output_dir'] = '../data/%s' % args['dataset']
+    args['output_dir'] = str(PROJECT_ROOT / 'data' / args['dataset'])
         
     template_dicts, template_infos = load_templates(args)
     extractor = build_template_extractor(args)
-    test_pre = labeling_dataset(args, 'test', template_dicts, template_infos, extractor)
-    make_simulate_output(args)
     val_pre = labeling_dataset(args, 'val', template_dicts, template_infos, extractor)
     train_pre = labeling_dataset(args, 'train', template_dicts, template_infos, extractor)
-    
+
+    test_file = PROJECT_ROOT / 'data' / args['dataset'] / 'raw' / 'raw_test.csv'
+    if test_file.exists():
+        test_pre = labeling_dataset(args, 'test', template_dicts, template_infos, extractor)
+        make_simulate_output(args)
+    else:
+        test_pre = None
+        print('No test split found, skipping test labeling.')
+
     combine_preprocessed_data(train_pre, val_pre, test_pre, args)
     
         

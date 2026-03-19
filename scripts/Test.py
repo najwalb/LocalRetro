@@ -1,20 +1,23 @@
 from argparse import ArgumentParser
+from pathlib import Path
 
 import torch
 import sklearn
 import torch.nn as nn
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 from utils import init_featurizer, mkdir_p, get_configure, load_model, load_dataloader, predict
 from get_edit import write_edits
 
 def main(args):
     model_name = 'LocalRetro_%s.pth' % args['dataset']
-    args['model_path'] = '../models/%s' % model_name
-    args['config_path'] = '../data/configs/%s' % args['config']
-    args['data_dir'] = '../data/%s' % args['dataset']
-    args['result_path'] = '../outputs/raw_prediction/%s' % model_name.replace('.pth', '.txt')
-    mkdir_p('../outputs')
-    mkdir_p('../outputs/raw_prediction')
+    args['model_path'] = str(PROJECT_ROOT / 'models' / model_name)
+    args['config_path'] = str(PROJECT_ROOT / 'data' / 'configs' / args['config'])
+    args['data_dir'] = str(PROJECT_ROOT / 'data' / args['dataset'])
+    args['result_path'] = str(PROJECT_ROOT / 'outputs' / 'raw_prediction' / model_name.replace('.pth', '.txt'))
+    mkdir_p(str(PROJECT_ROOT / 'outputs'))
+    mkdir_p(str(PROJECT_ROOT / 'outputs' / 'raw_prediction'))
     
     args = init_featurizer(args)
     model = load_model(args)

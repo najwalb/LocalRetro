@@ -57,14 +57,19 @@ def load_dataloader(args):
                             node_featurizer=args['node_featurizer'],
                             edge_featurizer=args['edge_featurizer'])
 
-        train_set, val_set, test_set = Subset(dataset, dataset.train_ids), Subset(dataset, dataset.val_ids), Subset(dataset, dataset.test_ids)
+        train_set = Subset(dataset, dataset.train_ids)
+        val_set = Subset(dataset, dataset.val_ids)
 
         train_loader = DataLoader(dataset=train_set, batch_size=args['batch_size'], shuffle=True,
                                   collate_fn=collate_molgraphs, num_workers=args['num_workers'])
         val_loader = DataLoader(dataset=val_set, batch_size=args['batch_size'],
                                 collate_fn=collate_molgraphs, num_workers=args['num_workers'])
-        test_loader = DataLoader(dataset=test_set, batch_size=args['batch_size'],
-                                 collate_fn=collate_molgraphs, num_workers=args['num_workers'])
+        if len(dataset.test_ids) > 0:
+            test_set = Subset(dataset, dataset.test_ids)
+            test_loader = DataLoader(dataset=test_set, batch_size=args['batch_size'],
+                                     collate_fn=collate_molgraphs, num_workers=args['num_workers'])
+        else:
+            test_loader = None
         return train_loader, val_loader, test_loader
     else:
         test_set = USPTOTestDataset(args, 
@@ -99,7 +104,11 @@ def load_model(args):
         scheduler = lr_scheduler.StepLR(optimizer, step_size=args['schedule_step'])
         
         if os.path.exists(args['model_path']):
-            user_answer = input('%s exists, want to (a) overlap (b) continue from checkpoint (c) make a new model?' % args['model_path'])
+            if args.get('overwrite', False):
+                user_answer = 'a'
+                print('--overwrite flag set, auto-overwriting existing model.')
+            else:
+                user_answer = input('%s exists, want to (a) overlap (b) continue from checkpoint (c) make a new model?' % args['model_path'])
             if user_answer == 'a':
                 stopper = EarlyStopping(mode = 'lower', patience=args['patience'], filename=args['model_path'])
                 print ('Overlap exsited model and training a new model...')

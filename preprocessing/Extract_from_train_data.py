@@ -2,13 +2,15 @@ from collections import defaultdict
 import pandas as pd
 import errno, sys, os, re
 from argparse import ArgumentParser
+from pathlib import Path
 
 import rdkit
-from rdkit import Chem, RDLogger 
+from rdkit import Chem, RDLogger
 from rdkit.Chem import rdChemReactions
 RDLogger.DisableLog('rdApp.*')
 
-sys.path.append('../')
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 from LocalTemplate.template_extractor import extract_from_reaction
 
 def mkdir_p(path):
@@ -46,9 +48,11 @@ def get_full_template(template, H_change, Charge_change, Chiral_change):
         return '_'.join([template, H_code, Charge_code, Chiral_code])
             
 def extract_templates(args, extractor):
-    rxns = pd.read_csv('../data/%s/raw_train.csv' % args['dataset'])['reactants>reagents>production']
-    
-    class_train = '../data/%s/class_train.csv' % args['dataset']
+    data_dir = PROJECT_ROOT / 'data' / args['dataset']
+    raw_dir = data_dir / 'raw'
+    rxns = pd.read_csv(str(raw_dir / 'raw_train.csv'))['reactants>reagents>production']
+
+    class_train = str(raw_dir / 'class_train.csv')
     if os.path.exists(class_train):
         RXNHASCLASS = True
         rxn_class = pd.read_csv(class_train)['class']
@@ -166,7 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('-stereo', '--use-stereo', default=True,  help='Use stereo info in template extraction')
     parser.add_argument('-min', '--min-template-n', type=int, default=1,  help='Minimum of template frequency')
     args = parser.parse_args().__dict__
-    args['output_dir'] = '../data/%s' % args['dataset']
+    args['output_dir'] = str(PROJECT_ROOT / 'data' / args['dataset'])
     mkdir_p(args['output_dir'])
         
     extractor = build_template_extractor(args)
