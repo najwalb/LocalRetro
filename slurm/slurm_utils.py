@@ -76,6 +76,8 @@ def add_platform_specific_slurm_commands(fh, slurm_args):
         fh.writelines(f"#SBATCH --mem={slurm_args['mem']}\n\n")
         fh.writelines("module purge\n")
         fh.writelines(f"module load {slurm_args['puhti_module']}\n")
+        fh.writelines("module load gcc/13.2.0\n")
+        fh.writelines("export LD_PRELOAD=/appl/spack/v022/install-tree/gcc-8.5.0/gcc-13.2.0-hgaeyz/lib64/libstdc++.so.6:$LD_PRELOAD\n")
         fh.writelines(f"export PYTHONUSERBASE={slurm_args['venv_path']}\n\n")
     else:
         raise ValueError(f"Platform {slurm_args['platform']} not supported")
@@ -92,6 +94,11 @@ def add_script_commands(fh, slurm_args, script_args):
 
     with open(job_file, 'w') as fj:
         fj.write("#!/bin/bash\nset -e\n")
+        if slurm_args['platform'] in ('puhti', 'mahti'):
+            fj.write("module purge\n")
+            fj.write(f"module load {slurm_args['puhti_module']}\n")
+            fj.write("module load gcc/13.2.0\n")
+            fj.write("export LD_LIBRARY_PATH=/appl/spack/v022/install-tree/gcc-8.5.0/gcc-13.2.0-hgaeyz/lib64:$LD_LIBRARY_PATH\n")
         fj.write(f"export PYTHONUSERBASE={slurm_args['venv_path']}\n\n")
         # Write each command
         for cmd in script_args['commands']:
