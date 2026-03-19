@@ -19,17 +19,17 @@ def get_platform_info(use_gpu=False):
         project = 'project_2015643'
         partition = 'gpu' if use_gpu else 'small'
         puhti_module = 'pytorch/2.4'
-        venv_path = '/projappl/project_2015643/localretro'
+        venv_path = '/projappl/project_2015643/multiguide'
     elif platform == 'mahti':
         project = 'project_2015643'
         partition = 'gpusmall' if use_gpu else 'small'
         puhti_module = 'pytorch/2.4'
-        venv_path = '/projappl/project_2015643/localretro'
+        venv_path = '/projappl/project_2015643/multiguide'
     elif platform == 'lumi':
         project = 'project_462001028'
         partition = 'small-g' if use_gpu else 'small'
         puhti_module = 'pytorch/2.4'
-        venv_path = '/projappl/project_462001028/localretro'
+        venv_path = '/projappl/project_462001028/multiguide'
     else:
         raise ValueError(f'Platform {platform} not supported')
     return {
